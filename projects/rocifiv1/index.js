@@ -1,3 +1,4 @@
+const BigNumber = require("bignumber.js");
 const sdk = require("@defillama/sdk");
 
 const USDC = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
@@ -37,14 +38,14 @@ async function tvl(timestamp, block, chainBlocks) {
 
     let balances = {};
 
-    const wethBalance = (await sdk.api.erc20.balanceOf({
+    const wethBalance = (sdk.api.erc20.balanceOf({
         block,
         target: WETH,
         owner: ROCI_COLLATERAL_MANAGER,
         chain: "polygon"
-    })).output;
+    }));
 
-    const usdcBalance = (await sdk.api.abi.multiCall({
+    const usdcBalance = (sdk.api.abi.multiCall({
         calls: ROCI_POOLS.map((pool) => ({
             target: ROCI_REVENUE_MANAGER,
             params: pool
@@ -52,10 +53,13 @@ async function tvl(timestamp, block, chainBlocks) {
         abi: RociRevenueManagerABI,
         chain: 'polygon',
         block: chainBlocks.polygon
-    })).output.reduce((a, b) => Number(a) + Number(b.output), 0);
+    }));
 
-    balances[`polygon:${USDC}`] = usdcBalance;
-    balances[`polygon:${WETH}`] = wethBalance;
+    await Promise.all([wethBalance, usdcBalance]).then((values) => {
+        console.log(values)
+        balances[`polygon:${WETH}`] = values[0].output;    
+        balances[`polygon:${USDC}`] = values[1].output.reduce((a, b) => new BigNumber(a).plus(new BigNumber(b.output)), 0).toFixed(0);
+    })
 
     return balances;
 }
