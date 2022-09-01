@@ -58,7 +58,7 @@ async function tvl(timestamp, block, chainBlocks) {
     await Promise.all([wethBalance, usdcBalance]).then((values) => {
         console.log(values)
         balances[`polygon:${WETH}`] = values[0].output;    
-        balances[`polygon:${USDC}`] = values[1].output.reduce((a, b) => new BigNumber(a).plus(new BigNumber(b.output)), 0).toFixed(0);
+        balances[`polygon:${USDC}`] = values[1].output.reduce((a, b) => a.plus(new BigNumber(b.output)), new BigNumber(0)).toFixed(0);
     })
 
     return balances;
